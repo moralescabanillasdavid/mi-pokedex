@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Pokedex</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .search {
+            margin-bottom: 20px;
+        }
+        input {
+            padding: 10px;
+            width: 200px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .pokemon-info {
+            display: none;
+            margin-top: 20px;
+        }
+        .pokemon-card {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .sprites {
+            display: flex;
+            gap: 10px;
+        }
+        .sprite {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .details {
+            flex: 1;
+        }
+        .types {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        .type {
+            padding: 5px 10px;
+            border-radius: 15px;
+            color: white;
+            font-size: 0.8em;
+            text-transform: capitalize;
+        }
+        .electric { background: #f7d02c; }
+        .fire { background: #ee8130; }
+        .water { background: #6390f0; }
+        .grass { background: #7ac74c; }
+        .poison { background: #a33ea1; }
+        .flying { background: #a98ff3; }
+        .bug { background: #a6b91a; }
+        .normal { background: #a8a77a; }
+        .ground { background: #e2bf65; }
+        .fairy { background: #d685ad; }
+        .fighting { background: #c22e28; }
+        .psychic { background: #f95587; }
+        .rock { background: #b6a136; }
+        .ghost { background: #735797; }
+        .ice { background: #96d9d6; }
+        .dragon { background: #6f35fc; }
+        .dark { background: #705746; }
+        .steel { background: #b7b7ce; }
+        .abilities {
+            margin: 10px 0;
+        }
+        .ability {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 3px 8px;
+            background: #e9ecef;
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+        .hidden {
+            opacity: 0.7;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mi Pokedex</h1>
+        <div class="search">
+            <input type="text" id="pokemonInput" placeholder="Ingresa nombre o ID del Pokemon" value="pikachu">
+            <button onclick="searchPokemon()">Buscar Pokemon</button>
+        </div>
+        <div class="pokemon-info" id="pokemonInfo">
+            <div class="pokemon-card">
+                <div class="sprites">
+                    <div class="sprite">
+                        <img id="spriteDefault" src="" alt="Pokemon Default">
+                        <p>Normal</p>
+                    </div>
+                    <div class="sprite">
+                        <img id="spriteShiny" src="" alt="Pokemon Shiny">
+                        <p>Shiny</p>
+                    </div>
+                </div>
+                <div class="details">
+                    <h2 id="pokemonName"></h2>
+                    <p><strong>ID:</strong> <span id="pokemonId"></span></p>
+                    <p><strong>Altura:</strong> <span id="pokemonHeight"></span> dm</p>
+                    <p><strong>Peso:</strong> <span id="pokemonWeight"></span> hg</p>
+                    <div class="types" id="pokemonTypes"></div>
+                    <div class="abilities" id="pokemonAbilities"></div>
+                </div>
+            </div>
+        </div>
+        <div class="error" id="errorMessage"></div>
+    </div>
+
+    <script>
+        async function searchPokemon() {
+            const input = document.getElementById('pokemonInput').value.trim();
+            if (!input) {
+                showError('Por favor ingresa un nombre o ID de Pokemon');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/pokemon/${input}`);
+                if (!response.ok) {
+                    throw new Error('Pokemon no encontrado');
+                }
+                const pokemon = await response.json();
+                displayPokemon(pokemon);
+                hideError();
+            } catch (error) {
+                showError(error.message);
+                hidePokemon();
+            }
+        }
+
+        function displayPokemon(pokemon) {
+            document.getElementById('pokemonName').textContent = capitalize(pokemon.name);
+            document.getElementById('pokemonId').textContent = pokemon.id;
+            document.getElementById('pokemonHeight').textContent = pokemon.height;
+            document.getElementById('pokemonWeight').textContent = pokemon.weight;
+
+            // Sprites
+            document.getElementById('spriteDefault').src = pokemon.sprites.front_default;
+            document.getElementById('spriteShiny').src = pokemon.sprites.front_shiny;
+
+            // Types
+            const typesContainer = document.getElementById('pokemonTypes');
+            typesContainer.innerHTML = '';
+            pokemon.types.forEach(type => {
+                const typeElement = document.createElement('span');
+                typeElement.className = `type ${type.name}`;
+                typeElement.textContent = type.name;
+                typesContainer.appendChild(typeElement);
+            });
+
+            // Abilities
+            const abilitiesContainer = document.getElementById('pokemonAbilities');
+            abilitiesContainer.innerHTML = '<strong>Habilidades:</strong><br>';
+            pokemon.abilities.forEach(ability => {
+                const abilityElement = document.createElement('span');
+                abilityElement.className = `ability ${ability.is_hidden ? 'hidden' : ''}`;
+                abilityElement.textContent = `${capitalize(ability.name)}${ability.is_hidden ? ' (Oculta)' : ''}`;
+                abilitiesContainer.appendChild(abilityElement);
+            });
+
+            document.getElementById('pokemonInfo').style.display = 'block';
+        }
+
+        function hidePokemon() {
+            document.getElementById('pokemonInfo').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').textContent = '';
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Buscar al cargar la página con Pikachu
+        window.onload = () => searchPokemon();
+    </script>
+</body>
+</html>
